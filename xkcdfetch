@@ -1,0 +1,46 @@
+#!/bin/bash
+
+comic_num=$(curl -s https://xkcd.com/info.0.json | jq -r '.num')
+comic_url="https://xkcd.com/info.0.json"
+
+# -s, --specific for a specfic comic
+# -r --random for a random comic
+# --help should also be included
+
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    -s|--specific)
+      if [[ "$2" =~ ^[0-9]+$ ]] && [[ -n "$2" ]]; then
+        comic_url="https://xkcd.com/$2/info.0.json"
+        shift 2
+      else
+        echo "Error: Please provide a valid comic number."
+        exit 1
+      fi
+      ;;
+    -r|--random)
+      rand=$(( ($RANDOM % $comic_num) + 1 ))
+      comic_url="https://xkcd.com/$rand/info.0.json"
+      shift
+      ;;
+    --help)
+      echo "Usage: [-s|--specific {comic number}] [-r|--random] [--help]"
+      exit 1
+      ;;
+  esac
+done
+
+data=$(curl -s $comic_url)
+
+img_url=$(echo "$data" | jq -r '.img')
+title=$(echo "$data" | jq -r '.title')
+alt_text=$(echo "$data" | jq -r '.alt')
+
+img_file="/tmp/xkcd_latest.png"
+
+curl -s "$img_url" -o "$img_file"
+
+echo "XKCD: $title"
+echo "Title-text: $alt_text"
+
+feh --title "XKCD: $title" "$img_file"
